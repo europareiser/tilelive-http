@@ -15,6 +15,8 @@ var meta = require("./package.json"),
     VERSION = meta.version,
     debug = _debug(NAME);
 
+var zlib = require('zlib');
+
 var quadKey = function(zoom, x, y) {
   var key = "";
 
@@ -180,7 +182,15 @@ module.exports = function(tilelive, options) {
           return obj;
         }, {});
 
-        return callback(null, body, rspHeaders);
+        if(rspHeaders['content-encoding'] === 'gzip') {
+            // recompress using deflate
+            var raw = zlib.gunzipSync(body);
+            var deflate = zlib.deflateSync(raw);
+            rspHeaders['content-encoding'] = 'deflate';
+            return callback(null, deflate, rspHeaders);
+        } else {        
+            return callback(null, body, rspHeaders);
+        }
 
       case 404:
         return callback(new Error("Tile does not exist"));
